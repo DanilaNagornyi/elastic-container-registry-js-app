@@ -1,72 +1,167 @@
-## demo app - developing with Docker
+# AWS ECR Training - Docker Image Push
 
-This demo app shows a simple user profile app set up using 
-- index.html with pure js and css styles
-- nodejs backend with express module
-- mongodb for data storage
+> Practical guide for working with Amazon Elastic Container Registry (ECR)
 
-All components are docker-based
+## 📋 Overview
 
-### With Docker
+This is a training application for learning AWS ECR workflows. A simple Node.js application with MongoDB demonstrates the complete cycle:
+- Building Docker images
+- Authenticating with AWS ECR
+- Pushing images to Amazon's private registry
 
-#### To start the application
+### Tech Stack
 
-Step 1: Create docker network
+- **Frontend**: HTML, CSS, vanilla JavaScript
+- **Backend**: Node.js + Express
+- **Database**: MongoDB
+- **Container Registry**: AWS ECR
 
-    docker network create mongo-network 
+---
 
-Step 2: start mongodb 
+## 🚀 Quick Start with AWS ECR
 
-    docker run -d -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password --name mongodb --net mongo-network mongo    
+### Prerequisites
 
-Step 3: start mongo-express
-    
-    docker run -d -p 8081:8081 -e ME_CONFIG_MONGODB_ADMINUSERNAME=admin -e ME_CONFIG_MONGODB_ADMINPASSWORD=password --net mongo-network --name mongo-express -e ME_CONFIG_MONGODB_SERVER=mongodb -e ME_CONFIG_MONGODB_URL=mongodb://mongodb:27017 mongo-express   
+```bash
+# Install AWS CLI (macOS)
+brew install awscli
 
-_NOTE: creating docker-network in optional. You can start both containers in a default network. In this case, just emit `--net` flag in `docker run` command_
+# Verify Docker installation
+docker --version
+```
 
-Step 4: open mongo-express from browser
+### 1. Configure AWS credentials
 
-    http://localhost:8081
+```bash
+aws configure
+```
 
-Step 5: create `user-account` _db_ and `users` _collection_ in mongo-express
+Enter:
+- AWS Access Key ID
+- AWS Secret Access Key
+- Default region: `ap-southeast-2`
+- Default output format: `json`
 
-Step 6: Start your nodejs application locally - go to `app` directory of project 
+### 2. Create ECR repository
 
-    cd app
-    npm install 
-    node server.js
-    
-Step 7: Access you nodejs application UI from browser
+```bash
+# Create repository in AWS ECR
+aws ecr create-repository --repository-name my-app --region ap-southeast-2
+```
 
-    http://localhost:3000
+### 3. Authenticate with ECR
 
-### With Docker Compose
+```bash
+aws ecr get-login-password --region ap-southeast-2 | \
+  docker login --username AWS --password-stdin \
+  678957989472.dkr.ecr.ap-southeast-2.amazonaws.com
+```
 
-#### To start the application
+### 4. Build Docker image
 
-Step 1: start mongodb and mongo-express
+```bash
+docker build -t my-app:1.0 .
+```
 
-    docker-compose -f docker-compose.yaml up
-    
-_You can access the mongo-express under localhost:8080 from your browser_
-    
-Step 2: in mongo-express UI - create a new database "user-account"
+### 5. Tag the image
 
-Step 3: in mongo-express UI - create a new collection "users" in the database "user-account"       
-    
-Step 4: start node server 
+```bash
+docker tag my-app:1.0 \
+  678957989472.dkr.ecr.ap-southeast-2.amazonaws.com/my-app:1.0
+```
 
-    cd app
-    npm install
-    node server.js
-    
-Step 5: access the nodejs application from browser 
+### 6. Push to ECR
 
-    http://localhost:3000
+```bash
+docker push 678957989472.dkr.ecr.ap-southeast-2.amazonaws.com/my-app:1.0
+```
 
-#### To build a docker image from the application
+### 7. Verify
 
-    docker build -t my-app:1.0 .       
-    
-The dot "." at the end of the command denotes location of the Dockerfile.
+```bash
+# List images in repository
+aws ecr list-images --repository-name my-app --region ap-southeast-2
+```
+
+---
+
+## 🧪 Local Application Testing
+
+### Option 1: With Docker Compose (recommended)
+
+```bash
+# Start MongoDB and Mongo Express
+docker-compose up -d
+
+# Create database "user-account" and collection "users" in Mongo Express
+# http://localhost:8080
+
+# Start application
+cd app
+npm install
+node server.js
+
+# Open in browser
+# http://localhost:3000
+```
+
+### Option 2: With individual Docker containers
+
+```bash
+# Create Docker network
+docker network create mongo-network
+
+# Start MongoDB
+docker run -d -p 27017:27017 \
+  -e MONGO_INITDB_ROOT_USERNAME=admin \
+  -e MONGO_INITDB_ROOT_PASSWORD=password \
+  --name mongodb --net mongo-network mongo
+
+# Start Mongo Express
+docker run -d -p 8081:8081 \
+  -e ME_CONFIG_MONGODB_ADMINUSERNAME=admin \
+  -e ME_CONFIG_MONGODB_ADMINPASSWORD=password \
+  -e ME_CONFIG_MONGODB_SERVER=mongodb \
+  --net mongo-network --name mongo-express mongo-express
+
+# Open Mongo Express: http://localhost:8081
+# Create database "user-account" and collection "users"
+
+# Start application
+cd app
+npm install
+node server.js
+
+# Open application: http://localhost:3000
+```
+
+---
+
+## 📝 Useful Commands
+
+```bash
+# View container logs
+docker logs <container-id>
+
+# List running containers
+docker ps
+
+# Stop all containers
+docker-compose down
+
+# Delete image from ECR
+aws ecr batch-delete-image \
+  --repository-name my-app \
+  --image-ids imageTag=1.0 \
+  --region ap-southeast-2
+```
+
+---
+
+## 🎯 Learning Objectives
+
+- ✅ Create and manage ECR repositories
+- ✅ Authenticate Docker with AWS ECR
+- ✅ Tag images for private registries
+- ✅ Push and pull images from ECR
+- ✅ Work with AWS CLI
